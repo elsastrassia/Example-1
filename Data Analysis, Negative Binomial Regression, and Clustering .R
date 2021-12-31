@@ -9,10 +9,11 @@ library(colorspace)
 library(dplyr)
 library(clValid)
 library(factoextra)
+library(mltools)
 
+data = read.csv(file ="/Users/elsastrassia/Downloads/DBD RANDOM DATA WEST JAVA - Sheet1 (2).csv") # Input data to be processed in the next stage
+data <- data$BODETABEK                             # $ sign is used to select a spesific column from the data table. BODETABEK just an example column. 
 
-data = read.csv(file.choose(),header=TRUE,sep=";") # Input data to be processed in the next stage
-data <- data$BODETABEK                             #$ sign is used to select a spesific column from the data table. BODETABEK just an example column. 
 
 # Using functions in R for data analysis
 skewness(data)           #it can be used to look at the skewness of the data so that we can see where the data set tends to converge. A positive value indicates that most of the values in the data are gathered on the left
@@ -32,38 +33,40 @@ plot(fp1)                                                 # Visualize the compar
 legend("bottomright",legend=c("Distribusi Data Asli","Distribusi Binomial Negatif"),cex=0.6,lty=1,  # Added an explanation of black and red colors meaning in the plot
        col=c("black","dark  red"),pch=c(9,NA))
 
+
 # Generalized Linear Model with predictor variables using Time Series analysis namely Autoregressive (AR)
 # Time Series analysis (we use the same data to modelling data with GLM)
 adf.test(data)              # Data stationarity test
 ts(data)                    # Convert a numeric vector into an time series object                                                                           
 acf(data)                   # This function is used to determine the autocorrelation between certain time lags
 pacf(data)                  # This function is used to determine the partial autocorrelation between certain time lags
- 
+
 #if the PACF plot shows a cut off at a certain time lag and the ACF plot shows a sinusoidal or exponential pattern, then we can continue with this code
-data_GLM = read.csv(file.choose(),header=TRUE,sep=";")                                       # Input data to be processed in the next stage
-data_GLM
+data_GLM = read.csv(file ="/Users/elsastrassia/Downloads/BODETABEK DATA - Sheet1.csv",sep=',')                                       # Input data to be processed in the next stage
+
 summary(nbinom_reg_BODETABEK <- glm.nb(data_GLM$BODETABEK~data_GLM$x, data = data_GLM))                         # It shows parameters of negatif binomial regression that used in BODETABEK data with x is predictor variabel that obtained by determining the PACF at a certain lag
 respons <- predict(nbinom_reg_BODETABEK,type="response")                                                        # Predict value of BODETABEK data using negative binomial regression
-plot(respons, main = NA,xlab = "Week", ylab = "Jumlah Penderita DBD di Kabupaten Subang",ylim=c(0,70),type="l") # Visualize predictive value of BODETABEK data with negative binomial regression in lines plot
+plot(respons, main = NA,xlab = "Week", ylab = "Jumlah Penderita DBD di Kabupaten Subang",ylim=c(0,600),type="l") # Visualize predictive value of BODETABEK data with negative binomial regression in lines plot
 lines(data, col = "red")                                                                                        # Add BODETABEK original data plot at the same frame with predictive value
 legend("topleft",legend=c("Nilai aktual kasus DBD di BODETABEK","Nilai kasus DBD dengan regresi binomial negatif"),cex=0.75,lty=1,  # Added an explanation of black and red colors meaning in the plot
        col=c("dark red","black"),pch=c(19,NA))
 
 # Mean Squared Error and Root Mean Squared Error between predictive values and original value of BODETABEK data
-mse(respons,data)                                                                                                                   
-rmse(respons,data)
+mse(respons,data_GLM$BODETABEK)
+rmse(respons,data_GLM$BODETABEK)
 
 # Clustering Data with Hierarchical and K-Means Method
-data_Cluster = read.csv(file.choose(),header=TRUE,sep=";")      # Input data from excel
+data_Cluster = read.csv(file = "/Users/elsastrassia/Downloads/Clustering - Sheet1 (2).csv",sep=",")      # Input data from excel
 data_edit_Cluster <- scale(data_Cluster[,-1])                   # Standardize data so that each variable is in the same range
 dist_data <- dist(data_edit_Cluster)                            # Calculate Euclidean distance   
+
 
 # Clustering data with Hierarchical Method
 dist_data<-na.omit(dist_data)                              # Removes all incomplete cases of a data object
 hc1 <- hclust(dist_data, method="ward.D" )                 # Hierarchical clustering namely Ward method
 dend <- as.dendrogram(hc1)                                 # Create dendogram of Ward method
 plot(dend)                                                 # Visualize the dendogram
-dend <- color_branches(dend, k=3)                          # Create 3 different groups by differentiating the color of each group 
+dend <- color_branches(dend, k=3)                          # Create 3 different groups by differentiating the color of each group
 species_labels <- data_Cluster[,1]                         
 labels(dend) <- paste(as.character(species_labels)[order.dendrogram(dend)], # Create name of each branch according to the name in the first column of table 
                       "(",labels(dend),")", 
@@ -94,13 +97,14 @@ fviz_silhouette(hc.res, palette = "jco", ggtheme = theme_classic())  # Visualize
 silinfo<-hc.res$silinfo                                              # Average value of the silhouette coefficient for each group 
 silinfo                                                              # Silhouette coefficient for each group member
 
+
 # Clustering data with K-Means Method
 km.res<-kmeans(dist_data,3,nstart=25)                                        # K-means method
-fviz_cluster(km.res, data_edit_Cluster,ellipse.type = "convex",labelsize =8) # Visualize K-means clustering
+km.res
+fviz_cluster(km.res, data_edit_Cluster,ellipse.type = "convex",labelsize = 8) # Visualize K-means clustering
 rownames(data_edit_Cluster) <- data_Cluster$Kabupaten.Kota                   # Label the chart
 dunn(dist_data,km.res$cluster)                                               # Measure how well the data are grouped
 sil <- silhouette(km.res$cluster, dist_data)
 sil                                                                          # Visualize the silhouette coefficient graph of each group member 
 fviz_silhouette(sil)                                                         # Average value of the silhouette coefficient for each group 
-                                                    
 
